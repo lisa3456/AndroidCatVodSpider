@@ -69,7 +69,6 @@ public class Introduce extends Spider {
                 } else {
                     resultMsg = "⚠️ 文件不存在";
                 }
-                showMsg = true;
                 break;
                 
             case "go_restart":
@@ -78,27 +77,14 @@ public class Introduce extends Spider {
                 boolean restarted = GoProxyManager.deployAndStart(ctx);
                 boolean running = GoProxyManager.isRunning();
                 resultMsg = (restarted || running) ? "✅ Go 代理重启成功" : "❌ 重启失败";
-                showMsg = true;
                 break;
                 
             default:
                 resultMsg = "📊 " + (GoProxyManager.isRunning() ? "🟢 运行中" : "🔴 未运行");
-                showMsg = true;
                 break;
         }
         
-        if (showMsg) {
-            return "{\"list\":[], \"msg\":\"" + resultMsg + "\"}";
-        }
-        
-        Vod item = new Vod();
-        item.setVodId(vodId);
-        item.setVodName(resultMsg);
-        item.setVodPic(PIC);
-        item.setVodPlayFrom("操作结果");
-        item.setVodPlayUrl("");
-        
-        return Result.string(item);
+        return "{\"list\":[], \"msg\":\"" + resultMsg + "\"}";
     }
 
     @Override
