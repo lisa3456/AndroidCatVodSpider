@@ -37,17 +37,14 @@ public class Introduce extends Spider {
         List<Vod> vodList = new ArrayList<>();
         
         if (tid.equals("go")) {
-            // 操作按钮
-            vodList.add(new Vod("go_start", "▶️ 启动 Go 代理", PIC));
-            vodList.add(new Vod("go_stop", "⏹️ 停止 Go 代理", PIC));
-            vodList.add(new Vod("go_copy", "📋 复制 Go 文件", PIC));
-            vodList.add(new Vod("go_delete", "🗑️ 删除 Go 文件", PIC));
-            vodList.add(new Vod("go_restart", "🔄 重启 Go 代理", PIC));
-            
             // 状态显示
             boolean isRunning = GoProxyManager.isRunning();
             String statusText = isRunning ? "🟢 运行中" : "🔴 未运行";
-            vodList.add(new Vod("status", "📊" + statusText, PIC));
+            vodList.add(new Vod("status", "📊 " + statusText, ""));
+            
+            // 操作按钮
+            vodList.add(new Vod("go_delete", "🗑️ 删除 Go 文件", ""));
+            vodList.add(new Vod("go_restart", "🔄 重启 Go 代理", ""));
         }
         
         return Result.get().vod(vodList).page().string();
@@ -63,35 +60,6 @@ public class Introduce extends Spider {
         String resultMsg = "";
         
         switch (vodId) {
-            case "go_start":
-                GoProxyManager.stopProxy();
-                try { Thread.sleep(300); } catch (InterruptedException ignored) {}
-                boolean started = GoProxyManager.deployAndStart(ctx);
-                boolean isRunning = GoProxyManager.isRunning();
-                resultMsg = (started || isRunning) ? "✅ Go 代理启动成功" : "❌ 启动失败，请检查源文件";
-                Notify.show(resultMsg);
-                break;
-                
-            case "go_stop":
-                boolean stopped = GoProxyManager.stopProxy();
-                resultMsg = stopped ? "✅ Go 代理已停止" : "❌ 停止失败";
-                Notify.show(resultMsg);
-                break;
-                
-            case "go_copy":
-                if (!srcFile.exists()) {
-                    resultMsg = "❌ 源文件不存在";
-                    Notify.show(resultMsg);
-                    break;
-                }
-                if (destFile != null && destFile.exists()) {
-                    destFile.delete();
-                }
-                boolean copied = GoProxyManager.deployAndStart(ctx);
-                resultMsg = copied ? "✅ Go 文件复制成功" : "❌ 复制失败";
-                Notify.show(resultMsg);
-                break;
-                
             case "go_delete":
                 if (destFile != null && destFile.exists()) {
                     GoProxyManager.stopProxy();
@@ -101,7 +69,7 @@ public class Introduce extends Spider {
                 } else {
                     resultMsg = "⚠️ 文件不存在";
                 }
-                Notify.show(resultMsg);
+                showMsg = true;
                 break;
                 
             case "go_restart":
@@ -110,13 +78,17 @@ public class Introduce extends Spider {
                 boolean restarted = GoProxyManager.deployAndStart(ctx);
                 boolean running = GoProxyManager.isRunning();
                 resultMsg = (restarted || running) ? "✅ Go 代理重启成功" : "❌ 重启失败";
-                Notify.show(resultMsg);
+                showMsg = true;
                 break;
                 
             default:
                 resultMsg = "📊 " + (GoProxyManager.isRunning() ? "🟢 运行中" : "🔴 未运行");
-                Notify.show(resultMsg);
+                showMsg = true;
                 break;
+        }
+        
+        if (showMsg) {
+            return "{\"list\":[], \"msg\":\"" + resultMsg + "\"}";
         }
         
         Vod item = new Vod();
