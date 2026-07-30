@@ -54,7 +54,6 @@ public class MainActivity extends Activity {
     private void initSpider() {
         try {
             Init.init(getApplicationContext());
-            spider = new Wogg();
             spider.init(this, "");
         } catch (Throwable e) {
             e.printStackTrace();
