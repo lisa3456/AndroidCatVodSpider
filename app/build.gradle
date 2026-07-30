@@ -198,9 +198,9 @@ dependencies {
 
             // 使用正则表达式替换 spider 字段中的 MD5 值
             // def updatedContent = indexJsonContent.replaceAll(
-                    /("spider":\s*"[^;]+;md5;)[^"]+"/,
-                    '$1' + md5 + '"'
-            )
+            //        /("spider":\s*"[^;]+;md5;)[^"]+"/,
+            //        '$1' + md5 + '"'
+            // )
 
             // 写回文件
             // indexJsonFile.write(updatedContent)
