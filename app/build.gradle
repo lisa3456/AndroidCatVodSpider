@@ -105,7 +105,7 @@ dependencies {
             def baksmaliJar = file("$workDir/jar/3rd/baksmali-2.5.2.jar")
             def apktoolJar = file("$workDir/jar/3rd/apktool_2.4.1.jar")
             def classesDex = file("$workDir/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex")
-            def indexJsonFile = file("$workDir/json/index.json")
+            // def indexJsonFile = file("$workDir/json/index.json")
 
             // 删除旧文件
             if (customSpiderJar.exists()) {
@@ -194,16 +194,16 @@ dependencies {
             md5File.text = md5
 
             // 替换index.json  md5 内容
-            def indexJsonContent = indexJsonFile.text
+            // def indexJsonContent = indexJsonFile.text
 
             // 使用正则表达式替换 spider 字段中的 MD5 值
-            def updatedContent = indexJsonContent.replaceAll(
+            // def updatedContent = indexJsonContent.replaceAll(
                     /("spider":\s*"[^;]+;md5;)[^"]+"/,
                     '$1' + md5 + '"'
             )
 
             // 写回文件
-            indexJsonFile.write(updatedContent)
+            // indexJsonFile.write(updatedContent)
 
             // 清理临时目录
             delete(
