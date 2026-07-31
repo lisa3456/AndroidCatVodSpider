@@ -33,7 +33,6 @@ public class Init {
 
     public static void init(Context context) {
         get().app = ((Application) context);
-        Proxy.init();
     }
 
     public static void execute(Runnable runnable) {
