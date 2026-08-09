@@ -8,7 +8,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-
+import com.github.catvod.spider.GoProxyManager;
 import com.github.catvod.crawler.SpiderDebug;
 
 import java.lang.reflect.Field;
@@ -35,19 +35,6 @@ public class Init {
     public Init() {
         this.handler = new Handler(Looper.getMainLooper());
         this.executor = Executors.newFixedThreadPool(5);
-        // Thread serverThread = new Thread(() -> {
-        //     try {
-        //         XiaoyaProxyServer.get().start();
-        //     } catch (Exception e) {
-        //         return;
-        //     }
-        // });
-
-        // serverThread.setUncaughtExceptionHandler((Thread thread, Throwable throwable) -> {
-        //     //Logger.log("未捕获异常：" + throwable.getMessage(), true);
-        // });
-        
-        // serverThread.start();
     }
 
     public static Application context() {
@@ -57,6 +44,24 @@ public class Init {
     public static void init(Context context) {
         get().app = ((Application) context);
         SpiderDebug.log("自定義爬蟲代碼載入成功！");
+        execute(() -> {
+            try {
+                // 检查是否已在运行
+                if (GoProxyManager.isRunning()) {
+                    SpiderDebug.log("✅ Go 代理已在运行");
+                    return;
+                }
+                // 启动代理
+                boolean started = GoProxyManager.deployAndStart(context);
+                if (started) {
+                    SpiderDebug.log("✅ Go 代理已自动启动");
+                } else {
+                    SpiderDebug.log("⚠️ Go 代理启动失败，请检查文件");
+                }
+            } catch (Exception e) {
+                SpiderDebug.log("❌ Go 代理启动异常: " + e.getMessage());
+            }
+        });
     }
 
     public static void execute(Runnable runnable) {
