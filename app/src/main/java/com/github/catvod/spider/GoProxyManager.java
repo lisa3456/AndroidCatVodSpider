@@ -78,59 +78,89 @@ public class GoProxyManager {
             File destFile = new File(destDir, GO_FILE_NAME);
             File srcFile = new File(SOURCE_PATH);
 
-            if (!srcFile.exists()) {
-                Log.e(TAG, "源文件不存在: " + SOURCE_PATH);
+            boolean srcExists = srcFile.exists();
+            boolean destExists = destFile.exists();
+
+            // ===== 情况1：源文件不存在，目标文件不存在 → 退出 =====
+            if (!srcExists && !destExists) {
+                Log.e(TAG, "❌ 源文件和目标文件都不存在");
+                SpiderDebug.log("❌ Go 代理启动失败：源文件不存在，且目标文件也不存在");
                 return false;
             }
 
-            boolean needCopy = false;
-            if (!destFile.exists()) {
-                needCopy = true;
-                Log.d(TAG, "目标文件不存在，需要复制");
-            } else {
-                String srcMD5 = getFileMD5(srcFile);
-                String destMD5 = getFileMD5(destFile);
-                if (srcMD5 == null || destMD5 == null || !srcMD5.equals(destMD5)) {
-                    needCopy = true;
-                    Log.d(TAG, "MD5 不同，需要更新");
-                } else {
-                    Log.d(TAG, "✅ 文件已是最新，跳过复制");
-                }
-            }
-
-            if (!needCopy) {
+            // ===== 情况2：源文件不存在，目标文件存在 → 直接启动 =====
+            if (!srcExists && destExists) {
+                Log.d(TAG, "✅ 源文件不存在，目标文件存在，直接启动");
                 if (!isRunning()) {
-                    Log.d(TAG, "代理未运行，重新启动...");
                     return startProcess(destFile);
                 }
                 Log.d(TAG, "✅ 代理已在运行");
                 return true;
             }
 
-            if (destFile.exists()) {
-                destFile.delete();
+            // ===== 情况3：源文件存在，目标文件不存在 → 复制并启动 =====
+            if (srcExists && !destExists) {
+                Log.d(TAG, "📦 源文件存在，目标文件不存在，复制并启动");
+                if (!copyFile(srcFile, destFile)) {
+                    Log.e(TAG, "复制文件失败");
+                    return false;
+                }
+                if (!chmod755(destFile)) {
+                    Log.e(TAG, "设置执行权限失败");
+                    return false;
+                }
+                if (!startProcess(destFile)) {
+                    Log.e(TAG, "启动代理失败");
+                    return false;
+                }
+                SpiderDebug.log("✅ Go 代理已启动: ws://127.0.0.1:5266/alllive/danmaku");
+                return true;
             }
 
-            if (!copyFile(srcFile, destFile)) {
-                Log.e(TAG, "复制文件失败");
-                return false;
-            }
-            Log.d(TAG, "✅ 文件已复制到: " + destFile.getAbsolutePath());
+            // ===== 情况4：源文件存在，目标文件存在 → 比较 MD5 =====
+            if (srcExists && destExists) {
+                String srcMD5 = getFileMD5(srcFile);
+                String destMD5 = getFileMD5(destFile);
 
-            if (!chmod755(destFile)) {
-                Log.e(TAG, "设置执行权限失败");
-                return false;
-            }
-            Log.d(TAG, "✅ 执行权限已设置");
+                if (srcMD5 == null || destMD5 == null) {
+                    Log.w(TAG, "⚠️ MD5 计算失败，使用目标文件启动");
+                    if (!isRunning()) {
+                        return startProcess(destFile);
+                    }
+                    return true;
+                }
 
-            if (!startProcess(destFile)) {
-                Log.e(TAG, "启动代理失败");
-                return false;
+                if (!srcMD5.equals(destMD5)) {
+                    Log.d(TAG, "📦 MD5 不同，更新文件并启动");
+                    if (destFile.exists()) {
+                        destFile.delete();
+                    }
+                    if (!copyFile(srcFile, destFile)) {
+                        Log.e(TAG, "复制文件失败");
+                        return false;
+                    }
+                    if (!chmod755(destFile)) {
+                        Log.e(TAG, "设置执行权限失败");
+                        return false;
+                    }
+                    if (!startProcess(destFile)) {
+                        Log.e(TAG, "启动代理失败");
+                        return false;
+                    }
+                    SpiderDebug.log("✅ Go 代理已更新并启动: ws://127.0.0.1:5266/alllive/danmaku");
+                    return true;
+                } else {
+                    Log.d(TAG, "✅ MD5 相同，文件未变化");
+                    if (!isRunning()) {
+                        Log.d(TAG, "代理未运行，重新启动...");
+                        return startProcess(destFile);
+                    }
+                    Log.d(TAG, "✅ 代理已在运行");
+                    return true;
+                }
             }
 
-            Log.d(TAG, "✅ Go 代理启动成功！");
-            SpiderDebug.log("✅ Go 代理已启动: ws://127.0.0.1:5266/alllive/danmaku");
-            return true;
+            return false;
 
         } catch (Exception e) {
             Log.e(TAG, "部署失败: " + e.getMessage());
@@ -199,7 +229,6 @@ public class GoProxyManager {
         }
     }
 
-    // ===== 用端口检测代替 ps 命令 =====
     public static boolean isRunning() {
         try {
             java.net.Socket socket = new java.net.Socket();
@@ -212,13 +241,10 @@ public class GoProxyManager {
         }
     }
 
-    // ===== 停止代理 =====
     public static boolean stopProxy() {
         try {
-            // 用 pkill 杀掉进程
             Process process = Runtime.getRuntime().exec(new String[]{"pkill", "-f", "pvideo-arm64-v8a"});
             int result = process.waitFor();
-            // 如果 pkill 失败，尝试用 killall
             if (result != 0) {
                 process = Runtime.getRuntime().exec(new String[]{"killall", "pvideo-arm64-v8a"});
                 result = process.waitFor();
